@@ -1,52 +1,106 @@
-version: "3.3"
+version: "3.8"
 services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: monitor_stack_portainer
+    restart: unless-stopped
+    ports:
+      - 9443:9443
+    volumes:
+      - portainer_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - server_network
+
+  nginx_proxy_manager:
+    image: 'jc21/nginx-proxy-manager:2'
+    container_name: monitor_stack_nginx_proxy_manager
+    restart: unless-stopped
+    ports:
+      # These ports are in format <host-port>:<container-port>
+      - '80:80' # Public HTTP Port
+      - '443:443' # Public HTTPS Port
+      - '81:81' # Admin Web Port
+      # Add any other Stream port you want to expose
+      # - '21:21' # FTP
+    # Uncomment the next line if you uncomment anything in the section
+    # environment:
+      # Uncomment this if you want to change the location of
+      # the SQLite DB file within the container
+      # DB_SQLITE_FILE: "/data/database.sqlite"
+
+      # Uncomment this if IPv6 is not enabled on your host
+      # DISABLE_IPV6: 'true'
+    volumes:
+      - nginx_proxy_manager_data:/data
+      - nginx_proxy_manager_letsencrypt:/etc/letsencrypt
+    networks:
+      - server_network
+
   grafana:
     image: grafana/grafana:10.1.0
-    container_name: grafana
+    container_name: monitor_stack_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
     volumes:
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - ./grafana/dashboards:/etc/grafana/dashboards
-    ports:
-      - "3000:3000"
-    network_mode: bridge
+    networks:
+      - server_network
     depends_on:
       - prometheus
 
   prometheus:
     image: prom/prometheus:v2.46.0
-    container_name: prometheus
+    container_name: monitor_stack_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
-    network_mode: bridge
+    networks:
+      - server_network
     depends_on:
       - cadvisor
-      - node-exporter
+      - node_exporter
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.2
-    container_name: cadvisor
+    container_name: monitor_stack_cadvisor
     restart: unless-stopped
+    ports:
+      - "8080:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
-    ports:
-      - "8080:8080"
-    network_mode: bridge
+    networks:
+      - server_network
 
-  node-exporter:
+  node_exporter:
     image: prom/node-exporter:v1.6.1
-    container_name: node-exporter
+    container_name: monitor_stack_node_exporter
     restart: unless-stopped
     ports:
       - "9100:9100"
-    network_mode: bridge
+    networks:
+      - server_network
 
 volumes:
+    portainer_data:
+      name: monitor_stack_portainer_data
+    nginx_proxy_manager_data:
+      name: monitor_stack_nginx_proxy_manager_data
+    nginx_proxy_manager_letsencrypt:
+      name: monitor_stack_nginx_proxy_manager_letsencrypt
     prometheus_data:
+      name: monitor_stack_prometheus_data
+
+networks:
+  server_network:
+    name: server_network
