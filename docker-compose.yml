@@ -2,6 +2,7 @@ version: "3.3"
 services:
   prometheus:
     image: prom/prometheus:v2.46.0
+    container_name: prometheus
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
@@ -10,6 +11,7 @@ services:
 
   grafana:
     image: grafana/grafana:10.1.0
+    container_name: grafana
     volumes:
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
@@ -23,6 +25,7 @@ services:
 
   node-exporter:
     image: prom/node-exporter:v1.6.1
+    container_name: node-exporter
     restart: unless-stopped
     ports:
       - "9100:9100"
@@ -30,6 +33,7 @@ services:
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: cadvisor
     restart: unless-stopped
     volumes:
       - /:/rootfs:ro
