@@ -1,0 +1,41 @@
+version: "3.3"
+services:
+  prometheus:
+    image: prom/prometheus:v2.46.0
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    network_mode: bridge
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    volumes:
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/dashboards:/etc/grafana/dashboards
+    ports:
+      - "3000:3000"
+    links:
+      - prometheus
+    network_mode: bridge
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    network_mode: bridge
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - "8080:8080"
+    network_mode: bridge
